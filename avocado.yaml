@@ -225,8 +225,9 @@ extensions:
       # linux-firmware recipe also splits out `-updates` subpackages carrying
       # the `.mdt + .bNN` form; the 2026 one (meta-lts-mixins wrynose) ships
       # none of them, and its qcm6490 firmware is `.mbn`-only. IPA's is the
-      # only `-updates` we ever wanted anyway, and it is scoped to the 2024
-      # feed in the kernel-6.6.* block below.
+      # only `-updates` we ever wanted anyway, and it was scoped to the 2024
+      # feed -- which this board does not ship on, so neither the block nor the
+      # package is here.
       #
       # Why not the others: `-updates` packages drop `.mdt + .bNN` into
       # /lib/firmware/updates/, which makes drivers actively boot the
@@ -274,62 +275,6 @@ extensions:
 
       # --- Wi-Fi (systemd-networkd DHCP profile + wpa_supplicant launcher) ---
       wpa-supplicant: '*'
-
-      # --- Bluetooth (Broadcom BSA stack — proprietary daemon, NOT BlueZ) ---
-      # bt.service is shipped DISABLED — BSA pulls a closed-source daemon. Users
-      # opt in via `systemctl enable bt.service`. Switch to BlueZ via a separate
-      # extension if a fully-open stack is preferred.
-
-      # --- Thermal (PWM fan controller for RB3 Gen 2 Vision Kit active cooling) ---
-
-      # --- GPIO (WiringPi-compatible userspace library + `gpio` CLI + Python) ---
-
-    # ------------------------------------------------------------------------
-    # Per-kernel packages, same shape as the imx BSPs: avocado-cli installs the
-    # kernel-<version> block matching the feed's kernel, on top of the common
-    # list above. 2024 feed = meta-qcom-hwe downstream 6.6; 2026 feed =
-    # meta-qcom upstream-kernel BSP, linux-qcom 6.18.
-    # ------------------------------------------------------------------------
-
-    # Downstream-only, no mainline counterpart -- listing these on the 2026 feed
-    # fails the whole install with "No match for argument".
-    #   usb-f-qdss, coresight-csr/-remote-etm/-tgu, stm-p-ost
-    #       Qualcomm's out-of-tree QDSS/Coresight trace extensions. The mainline
-    #       Coresight/STM modules that do exist are in the common list.
-    #   qcom-rproc-minidump
-    #       downstream minidump; mainline ships no equivalent module.
-    #   msm-display, snd-soc-qcm6490
-    #       superseded upstream -- see the kernel-6.18.* replacements below.
-    # The two firmware packages are the same story from linux-firmware rather
-    # than from the kernel (see the firmware comment above).
-    kernel-6.6.*:
-      packages:
-        kernel-module-usb-f-qdss: '*'
-        kernel-module-coresight-csr: '*'
-        kernel-module-coresight-remote-etm: '*'
-        kernel-module-coresight-tgu: '*'
-        kernel-module-stm-p-ost: '*'
-        kernel-module-msm-display: '*'
-        kernel-module-snd-soc-qcm6490: '*'
-        kernel-module-qcom-rproc-minidump: '*'
-        linux-firmware-qcom-qcm6490-ipafw-updates: '*'
-        linux-firmware-qcom-qcm6490-verinfo: '*'
-        # The HWE audio userspace: the PAL pipewire plugin (and pipewire itself,
-        # transitively). Dropped from the common list when the 2026 port removed
-        # meta-qcom-hwe, but it still exists in the 2024 feed and is what made
-        # audio work there -- scoping it here keeps that leg unchanged instead of
-        # regressing it. Note pipewire-pulse.socket is no longer auto-enabled
-        # (see enable_services above); on 2024 it needs
-        # `systemctl enable --now pipewire-pulse.socket`.
-        qcom-pw-pal-plugin: '*'
-
-    # Upstream kernel. The common list was captured from an HWE-era lsmod, where
-    # the downstream defconfig had these blocks built in (=y); upstream
-    # qcom_defconfig builds them as modules, so they have to be installed
-    # explicitly. Every entry here binds a node that is present and enabled in
-    # qcs6490-thundercomm-rb3gen2.dtb -- checked by matching each enabled
-    # node's compatible against the OF aliases in this kernel's .ko set and
-    # modules.builtin.modinfo.
     kernel-6.18.*:
       packages:
         # --- Display / GPU ---

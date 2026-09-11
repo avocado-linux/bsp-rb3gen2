@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.0]
 
+### Removed
+- The 2024 feed from CI, and the `kernel-6.6.*` package block that served it.
+  This board does not ship on 2024, so that matrix leg could only ever fail and
+  the block's packages resolve against no feed we build.
+
 ### Changed
 - Install `kernel-module-tc956x-pcie-eth` rather than `qps615-dlkm`. The recipe's
   base package is built once per multiconfig under one name differing only by
