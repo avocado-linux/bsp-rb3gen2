@@ -1,0 +1,345 @@
+default_target: rb3gen2
+supported_targets:
+  - rb3gen2
+
+extensions:
+  avocado-bsp-rb3gen2:
+    version: 0.2.0
+    release: r0
+    summary: Board support for the Thundercomm RB3 Gen 2 Vision Kit (QCS6490)
+    description: Board support for the Thundercomm RB3 Gen 2 Vision Kit (QCS6490)
+    license: Apache-2.0
+    url: https://github.com/avocadolinux/avocado-os
+    vendor: Avocado Linux <info@avocadolinux.org>
+
+    # Services the BSP layer takes responsibility for. Enabled at merge
+    # (so they auto-start on subsequent boots) and started/stopped on the
+    # current boot via on_merge/on_unmerge so the user doesn't need to
+    # reboot to see the BSP take effect.
+    #
+    # These lists CANNOT be feed-scoped: `ext build` resolves the ext config
+    # without a kernel version (get_merged_ext_config_with_board takes no
+    # kver), so `kernel-<spec>:` blocks are stripped before it reads
+    # enable_services. Every unit named here must therefore exist in the
+    # extension sysroot on BOTH feeds, or `ext build` fails with
+    # "enable_services lists X, but no such unit exists".
+    #
+    # Intentionally NOT in this list:
+    #   - bt.service        — Broadcom BSA daemon is opt-in (proprietary).
+    #                         Users enable manually if they choose BSA over BlueZ.
+    #   - pipewire-pulse.socket — the 2026 feed has no pipewire at all (nothing
+    #                         builds it for this target now that the HWE PAL
+    #                         plugin is gone), and there is no PCM device there
+    #                         yet either (see the audio comment below). Re-add
+    #                         it once 2026 gains both a sound card node and a
+    #                         pipewire package, so the unit exists on both feeds.
+
+    # No enable_services block, unlike bsp-rubikpi3. Its two units --
+    # rubikpi-thermal.service and wifi.service -- come from rb3gen2-thermal and
+    # rb3gen2-init-services-wifi, RubikPi packages that do not exist for this
+    # board (see the REMOVED note above; rubikpi-thermal.service did not even
+    # get renamed by the substitution). Per the rule stated above, a unit named
+    # here that no package ships fails `ext build` outright -- so these, and
+    # their start/stop lines in on_merge and on_unmerge, are gone. Thermal and
+    # wifi bring-up on this board is unwritten, not deliberately disabled.
+    on_merge:
+      - udevadm control --reload
+      - udevadm trigger --type=subsystems --action=add --settle
+      - udevadm trigger --type=devices --action=add --settle
+
+
+    packages:
+      # REMOVED -- these came from deriving this list off bsp-rubikpi3 and do not
+      # exist in the rb3gen2 feed. Two separate mistakes, both caught by
+      # `avocado ext install` against the real feed rather than by review:
+      #
+      #  1. Renaming artifacts. A blind rubikpi3 -> rb3gen2 substitution invents
+      #     package names: firmware-rb3gen2, systemd-rb3gen2-masks,
+      #     rb3gen2-{init-services-wifi,init-services-bt,thermal} and
+      #     linux-firmware-qcom-qcs6490-thundercomm-rb3gen2-audio are all
+      #     RubikPi packages with the board name swapped. The Thundercomm one is
+      #     the clearest tell: the feed has the -rubikpi3- spelling and nothing
+      #     else, because it IS Thundercomm's firmware.
+      #  2. RubikPi-only hardware. brcmfmac/brcmutil are Broadcom wifi; this
+      #     board is WCN6750 on ath11k, named above. wiringrp* is the RubikPi's
+      #     GPIO library. rubikpi-wifi and rubikpi-bt-staticdev kept their names
+      #     through the substitution and are Thundercomm's too.
+      #
+      # linux-firmware-qcom-qcs6490-modem is a third case: it is named by
+      # packagegroup-avocado-qcom-extra but is not built into this feed, so the
+      # packagegroup's own rb3gen2 append currently references a package that
+      # does not exist. Worth chasing separately; it is not this extension's bug.
+
+      # --- RB3 Gen 2 board peripherals (NOT inherited from the RubikPi) -----
+      # These are the packages that make this a different board from the
+      # RubikPi, and they are why this extension exists separately.
+      #
+      # qps615-dlkm is the ETHERNET. The RB3 Gen 2 puts its NIC behind a QPS615
+      # PCIe switch driven by an out-of-tree module (Qualcomm's fork of
+      # Toshiba's TC956x driver) plus a firmware blob the bridge loads at probe.
+      # The RubikPi reaches the network through a USB NIC behind a Renesas
+      # bridge instead, so nothing in the inherited list covers this. A board
+      # that boots without a NIC is also a board `avocado deploy` cannot reach.
+      #
+      # Both are already built into the feed and named feed-only by
+      # packagegroup-avocado-qcom-extra; this extension is what installs them.
+      # NOT `qps615-dlkm`. That is the recipe's BASE package, and the
+      # multiconfig builds it twice -- once per kernel -- under one name,
+      # differing only by PR:
+      #
+      #   qps615-dlkm-...-r0.0  requires kernel-module-tc956x-pcie-eth-6.18.37-...
+      #   qps615-dlkm-...-r0.1  requires kernel-module-tc956x-pcie-eth-6.18.37-rt-...
+      #
+      # dnf always takes the highest PR, so naming the base package resolves
+      # only on an RT sysroot; on a stock one it demands the RT module and
+      # dies with "filtered out by exclude filtering".
+      #
+      # The kernel-module-* name is versioned per kernel, so it resolves
+      # against whichever sysroot is being built. Same way
+      # kernel-module-avocado-shm is consumed.
+      kernel-module-tc956x-pcie-eth: '*'
+      qps615-firmware: '*'
+      # WCN6750 on this board, not the part the qcm6490 firmware block covers.
+      linux-firmware-ath11k-wcn6750: '*'
+      linux-firmware-qca-wcn6750: '*'
+      # HDMI bridge and modem firmware, per the same packagegroup.
+      linux-firmware-lt9611uxc: '*'
+
+      # Pinned to the lsmod set captured on a successful first boot. Storage
+      # (UFS+SDHCI), USB controllers, and EMAC are =y in upstream qcom_defconfig
+      # so they're in the kernel Image directly and don't appear here.
+
+      # --- USB networking (CDC, Renesas USB3 hub) ---
+      kernel-module-cdc-ether: '*'
+      kernel-module-cdc-ncm: '*'
+      kernel-module-mii: '*'
+      kernel-module-usbnet: '*'
+      kernel-module-xhci-pci: '*'
+      kernel-module-xhci-pci-renesas: '*'
+
+      # --- Coresight / STM trace fabric ---
+      kernel-module-coresight: '*'
+      kernel-module-coresight-cti: '*'
+      kernel-module-coresight-dummy: '*'
+      kernel-module-coresight-funnel: '*'
+      kernel-module-coresight-replicator: '*'
+      kernel-module-coresight-stm: '*'
+      kernel-module-coresight-tmc: '*'
+      kernel-module-coresight-tpda: '*'
+      kernel-module-coresight-tpdm: '*'
+      kernel-module-stm-console: '*'
+      kernel-module-stm-core: '*'
+      kernel-module-stm-ftrace: '*'
+      kernel-module-stm-heartbeat: '*'
+
+      # --- Display / GPU (msm DRM driver) ---
+      kernel-module-display-connector: '*'
+      kernel-module-drm: '*'
+      kernel-module-drm-display-helper: '*'
+      kernel-module-drm-dp-aux-bus: '*'
+      kernel-module-drm-kms-helper: '*'
+      kernel-module-gpu-sched: '*'
+      kernel-module-llcc-qcom: '*'
+      kernel-module-ocmem: '*'
+
+      # --- USB-C / Type-C / pmic-glink ---
+      kernel-module-gpio-sbu-mux: '*'
+      kernel-module-pmic-glink: '*'
+      kernel-module-pmic-glink-altmode: '*'
+      kernel-module-typec: '*'
+      kernel-module-typec-ucsi: '*'
+      kernel-module-ucsi-glink: '*'
+
+      # --- Power management / PMIC ---
+      kernel-module-nvmem-qcom-spmi-sdam: '*'
+      kernel-module-qcom-battmgr: '*'
+      kernel-module-qcom-edac: '*'
+      kernel-module-qcom-pon: '*'
+      kernel-module-qcom-spmi-adc-tm5: '*'
+      kernel-module-qmi-cooling: '*'
+      kernel-module-rtc-pm8xxx: '*'
+
+      # --- Audio (qcm6490 sound card + SoundWire + ASoC helpers) ---
+      kernel-module-snd-soc-qcom-common: '*'
+      kernel-module-snd-soc-qcom-sdw: '*'
+      kernel-module-snd-soc-simple-card-utils: '*'
+
+      # --- Remoteproc / Q6 DSP loader ---
+      kernel-module-mdt-loader: '*'
+      kernel-module-qcom-pil-info: '*'
+      kernel-module-qcom-q6v5: '*'
+      kernel-module-qcom-q6v5-pas: '*'
+      kernel-module-qcom-sysmon: '*'
+
+      # --- IPC: qrtr / GLINK / IPA ---
+      kernel-module-ipa: '*'
+      kernel-module-qcom-common: '*'
+      kernel-module-qcom-glink-smem: '*'
+      kernel-module-qrtr: '*'
+
+      # --- Pinctrl (LPASS LPI for audio) ---
+      kernel-module-pinctrl-lpass-lpi: '*'
+      kernel-module-pinctrl-sc7280-lpass-lpi: '*'
+
+      # --- PHYs (USB/PCIe combo, ethernet PHY) ---
+      kernel-module-at803x: '*'
+      kernel-module-phy-qcom-qmp-combo: '*'
+      kernel-module-qcom-phy-lib: '*'
+
+      # --- Crypto ---
+      kernel-module-authenc: '*'
+      kernel-module-libdes: '*'
+      kernel-module-qcom-rng: '*'
+      kernel-module-qcrypto: '*'
+
+      # --- Interconnect / SPI / SoC info ---
+      kernel-module-gpi: '*'
+      kernel-module-icc-bwmon: '*'
+      kernel-module-icc-osm-l3: '*'
+      kernel-module-qcom-eud: '*'
+      kernel-module-qcom-stats: '*'
+      kernel-module-socinfo: '*'
+      kernel-module-spi-geni-qcom: '*'
+      kernel-module-spidev: '*'
+
+      # --- Filesystems / Block / Compression ---
+      kernel-module-fuse: '*'
+      kernel-module-lz4: '*'
+      kernel-module-lz4-compress: '*'
+      kernel-module-zram: '*'
+      kernel-module-zsmalloc: '*'
+
+      # --- Wi-Fi (Broadcom BCM43456 / BCM4345/9 SDIO via mainline brcmfmac) ---
+      kernel-module-cfg80211: '*'
+      kernel-module-mac80211: '*'
+      # Vendor sub-driver for the Cypress WCC family (BCM4345/9). Without
+      # this, brcmfmac core fails `brcmf_fwvid_attach` and never registers
+      # wlan0 even after firmware loads.
+
+      # --- Misc ---
+      kernel-module-ipv6: '*'
+      kernel-module-pwm-fan: '*'
+
+      # --- Firmware (Qualcomm SoC) ---
+      # Only the base (`.mbn`) packages are common to both feeds. The 2024
+      # linux-firmware recipe also splits out `-updates` subpackages carrying
+      # the `.mdt + .bNN` form; the 2026 one (meta-lts-mixins wrynose) ships
+      # none of them, and its qcm6490 firmware is `.mbn`-only. IPA's is the
+      # only `-updates` we ever wanted anyway, and it was scoped to the 2024
+      # feed -- which this board does not ship on, so neither the block nor the
+      # package is here.
+      #
+      # Why not the others: `-updates` packages drop `.mdt + .bNN` into
+      # /lib/firmware/updates/, which makes drivers actively boot the
+      # ADSP / CDSP. The generic qcm6490 audio firmware crashes on the
+      # rb3gen2 board variant inside `charger_process` (see err_qdi.c:1122),
+      # dangling the qcom,apr rpmsg endpoint and panicking the kernel via
+      # gpr_send_pkt. Until we have rb3gen2-specific `.mdt + .bNN`
+      # audio/compute firmware (the rb3gen2-specific package only ships
+      # `.mbn`), these remoteprocs are happier left `offline`; the kernel
+      # falls back to the `.mbn` form when something explicitly starts them.
+      linux-firmware-qcom-qcm6490-adreno: '*'              # GPU firmware (a660_zap.mbn)
+      linux-firmware-qcom-qcm6490-audio: '*'               # ADSP (adsp.mbn + jsons)
+      linux-firmware-qcom-qcm6490-compute: '*'             # CDSP (cdsp.mbn + jsons)
+      linux-firmware-qcom-qcm6490-ipa: '*'                 # IPA fw (ipa_fws.mbn fallback)
+      linux-firmware-qcom-qcm6490-qupv3fw: '*'             # QUP serial-engine fw
+      linux-firmware-qcom-qcm6490-wifi: '*'                # WPSS Wi-Fi/BT subsystem fw (wpss.mbn)
+      wireless-regdb-static: '*'
+
+      # --- Firmware (RB3 Gen 2 Vision Kit onboard peripherals) ---
+      # Broadcom BCM43456 Wi-Fi/BT, LT9611UXC HDMI bridge,
+      # AW882xx audio amp, Renesas USB hub, SD-UART 8987.
+
+      # `linux-firmware-bcm43455` is pulled transitively as an RDEPENDS of
+      # firmware-rb3gen2 — we need its `brcmfmac43455-sdio.clm_blob` as the
+      # symlink target for `brcmfmac43456-sdio.clm_blob` (BCM4345/9 silicon
+      # has no upstream CLM blob; the closely-related 43455 family blob
+      # works in practice).
+
+      # --- Audio ---
+      # The pipewire-PAL plugin (qcom-pw-pal-plugin) went with the meta-qcom-hwe
+      # stack, so there is no userspace plugin on either feed. On the upstream
+      # kernel the DSP side is the mainline APR/QDSP6 stack (apr + q6core /
+      # q6afe / q6asm / q6adm / q6routing, listed in the kernel-6.18.* block
+      # below) rather than downstream snd_soc_qcm6490.
+      #
+      # KNOWN GAP on the 2026 feed: sc7280.dtsi declares `sound: sound { };` as
+      # an empty stub for the board DTS to fill, and our
+      # qcs6490-thundercomm-rb3gen2.dts does not fill it. With no card node
+      # nothing binds an ASoC machine driver, so the DSP backends probe but no
+      # PCM device appears. The fix belongs in the DTS (a `&sound` node whose
+      # compatible one of the mainline machine drivers claims -- for QCS6490
+      # that is snd-soc-sc8280xp, which matches qcom,qcm6490-idp-sndcard and
+      # qcom,qcs6490-rb3gen2-sndcard); add kernel-module-snd-soc-sc8280xp here
+      # in the same change.
+
+      # --- Wi-Fi (systemd-networkd DHCP profile + wpa_supplicant launcher) ---
+      wpa-supplicant: '*'
+    kernel-6.18.*:
+      packages:
+        # --- Display / GPU ---
+        # Mainline drm/msm (DPU is built into msm.ko: CONFIG_DRM_MSM_DPU=y),
+        # replacing downstream msm-display. It pulls the drm helper modules via
+        # RPM requires; the clock controllers do not come with it -- they bind
+        # their own DT nodes and are needed for display and GPU to come up.
+        kernel-module-msm: '*'                        # gpu@3d00000, DPU, DSI
+        kernel-module-dispcc-sc7280: '*'              # clock-controller@af00000
+        kernel-module-gpucc-sc7280: '*'               # clock-controller@3d90000
+        kernel-module-lontium-lt9611: '*'             # hdmi-bridge@39 (lontium,lt9611)
+
+        # --- Buses / PHYs ---
+        # i2c@984000 and i2c@a84000 carry the HDMI bridge and the audio amp;
+        # spi-geni-qcom is in the common list but its I2C sibling was built in
+        # downstream, so it was never listed.
+        kernel-module-i2c-qcom-geni: '*'              # i2c@984000, i2c@a84000
+        kernel-module-phy-qcom-snps-femto-v2: '*'     # phy@88e3000, phy@88e4000 (USB HS)
+
+        # --- PMIC: PWM, ADC, thermal ---
+        # The pwm-fan node's provider is the pm8350c `pwm` node, driven by
+        # leds-qcom-lpg -- without it kernel-module-pwm-fan (common list) has no
+        # PWM to drive and rb3gen2-thermal has nothing under /sys/class/pwm.
+        kernel-module-leds-qcom-lpg: '*'              # pwm (qcom,pm8350c-pwm)
+        kernel-module-qcom-spmi-adc5: '*'             # adc@3100
+        kernel-module-qcom-spmi-temp-alarm: '*'       # temp-alarm@2400, temp-alarm@a00
+
+        # --- systemd preset overrides + masks for this board ---
+        # Disables OE's `enable getty@.service` preset (rb3gen2 has no virtual
+        # console, so the instantiated unit fails a start-limit hit and leaves
+        # the system degraded) and masks boot.mount, the systemd-boot updaters
+        # and proc-fs-nfsd.mount. 2026-only: the recipe was never built into a
+        # feed before -- its only reference was MACHINE_ESSENTIAL_EXTRA_RDEPENDS,
+        # which avocado-cli's runtime rootfs does not consult -- so the 2024
+        # feed has no such package.
+
+        # --- Audio DSP (mainline APR/QDSP6, replacing snd-soc-qcm6490) ---
+        # These bind the enabled service@N nodes under the ADSP remoteproc and
+        # provide the DAI/routing backends. No PCM device appears until the DTS
+        # gains a `&sound` card node -- see the audio comment above.
+        kernel-module-lpassaudiocc-sc7280: '*'        # clock-controller@3300000
+        kernel-module-apr: '*'                        # apr
+        kernel-module-q6core: '*'                     # service@3
+        kernel-module-q6afe: '*'                      # service@4
+        kernel-module-q6afe-dai: '*'                  # dais
+        kernel-module-q6afe-clocks: '*'               # clock-controller
+        kernel-module-q6asm: '*'                      # service@7
+        kernel-module-q6asm-dai: '*'                  # dais
+        kernel-module-q6adm: '*'                      # service@8
+        kernel-module-q6routing: '*'                  # routing
+
+        # Deliberately not listed, though the dtb has enabled nodes for them:
+        #   camcc-sc7280            camera clocks; no camera support here
+        #   videocc-sc7280 + qcom-iris  hardware video codec; absent from the
+        #                           2024 set too, so not a regression
+        #   fastrpc (+compute-cb)   CDSP offload; the CDSP is deliberately left
+        #                           offline (see the firmware comment)
+        #   q6usb                   USB audio offload; needs the card first
+        #   nvmem-reboot-mode       reboot-mode via nvmem, not used by avocado
+
+sdk:
+  image: docker.io/avocadolinux/sdk:{{ env.AVOCADO_DISTRO_RELEASE }}
+
+  # mkfs.erofs, which `avocado ext image` shells out to. Same reason as
+  # bsp-excc-q911: it is in this target's SDK feed but not in the SDK
+  # bootstrap, and an extension declaring no sdk.packages gets bootstrap only.
+  packages:
+    nativesdk-erofs-utils: "*"
