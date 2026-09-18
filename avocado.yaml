@@ -4,7 +4,7 @@ supported_targets:
 
 extensions:
   avocado-bsp-rb3gen2:
-    version: 0.2.0
+    version: 0.3.2
     release: r0
     summary: Board support for the Thundercomm RB3 Gen 2 Vision Kit (QCS6490)
     description: Board support for the Thundercomm RB3 Gen 2 Vision Kit (QCS6490)
@@ -118,21 +118,37 @@ extensions:
       kernel-module-xhci-pci-renesas: '*'
 
       # --- Coresight / STM trace fabric ---
-      kernel-module-coresight: '*'
-      kernel-module-coresight-cti: '*'
-      kernel-module-coresight-dummy: '*'
-      kernel-module-coresight-funnel: '*'
-      kernel-module-coresight-replicator: '*'
-      kernel-module-coresight-stm: '*'
-      kernel-module-coresight-tmc: '*'
-      kernel-module-coresight-tpda: '*'
-      kernel-module-coresight-tpdm: '*'
-      kernel-module-stm-console: '*'
-      kernel-module-stm-core: '*'
-      kernel-module-stm-ftrace: '*'
-      kernel-module-stm-heartbeat: '*'
+      # DELIBERATELY NOT LOADED (breaks the GPU): the coresight/STM blocks are
+      # AMBA (arm,primecell) devices. At boot the ARM-SMMU registers and, via the
+      # IOMMU-probe path, calls amba_dma_configure() on every AMBA device. That
+      # function reads dev->driver once at entry (NULL), sleeps in
+      # of_dma_configure_id(), and by the time the guard
+      # `dev->driver && !drv->driver_managed_dma` runs the coresight module has
+      # bound the device -- the guard passes but derefs the stale-NULL drv and
+      # NULL-crashes deferred_probe_work_func, leaving the GPU (3d00000.gpu /
+      # 3d6a000.gmu) without an iommu and no /dev/dri. Not loading them leaves the
+      # AMBA devices driverless (guard short-circuits, no crash). Coresight is
+      # debug-only, so it stays out until a kernel fix (read dev->driver once in
+      # amba_dma_configure()) lands. Verified on the RB3 Gen 2 bench.
 
       # --- Display / GPU (msm DRM driver) ---
+      # The msm DPU binds every enabled display output plus the Adreno GPU as one
+      # component aggregate: if any output's driver is missing, the aggregate
+      # never completes and there is no /dev/dri (GPU included). Two outputs need
+      # their own driver here, and both were absent from the first lsmod snapshot
+      # (so the GPU never came up):
+      #   phy-qcom-edp      the eDP PHY that drives the mini-DisplayPort
+      #                     (mdss_edp @aea0000 -> dp-connector "DP"/"mini"); without
+      #                     it mdss_edp sits in deferred probe and stalls the
+      #                     aggregate.
+      #   lontium-lt9611uxc the DSI->HDMI bridge (the board fits the UXC part,
+      #                     compatible "lontium,lt9611uxc"); the non-UXC
+      #                     lontium-lt9611 does NOT match it. Without the bridge the
+      #                     DSI/HDMI output never finishes modeset.
+      # With both loaded the aggregate binds: card0 (+DP-1 mini-DP, +HDMI-A-1) and
+      # renderD128, a660 GMU firmware loaded. Verified on the RB3 Gen 2 bench.
+      # (The broken USB-C DP output, mdss_dp @ae90000, is removed from the
+      # aggregate by the qcs6490-rb3gen2-dp-disable UKI overlay in meta-avocado.)
       kernel-module-display-connector: '*'
       kernel-module-drm: '*'
       kernel-module-drm-display-helper: '*'
@@ -141,6 +157,8 @@ extensions:
       kernel-module-gpu-sched: '*'
       kernel-module-llcc-qcom: '*'
       kernel-module-ocmem: '*'
+      kernel-module-phy-qcom-edp: '*'
+      kernel-module-lontium-lt9611uxc: '*'
 
       # --- USB-C / Type-C / pmic-glink ---
       kernel-module-gpio-sbu-mux: '*'
@@ -238,7 +256,8 @@ extensions:
       # audio/compute firmware (the rb3gen2-specific package only ships
       # `.mbn`), these remoteprocs are happier left `offline`; the kernel
       # falls back to the `.mbn` form when something explicitly starts them.
-      linux-firmware-qcom-qcm6490-adreno: '*'              # GPU firmware (a660_zap.mbn)
+      linux-firmware-qcom-adreno-a660: '*'                 # GMU + SQE microcode (a660_gmu.bin, a660_sqe.fw) -- the GMU cannot boot without it, so /dev/dri never appears
+      linux-firmware-qcom-qcm6490-adreno: '*'              # GPU zap shader (a660_zap.mbn)
       linux-firmware-qcom-qcm6490-audio: '*'               # ADSP (adsp.mbn + jsons)
       linux-firmware-qcom-qcm6490-compute: '*'             # CDSP (cdsp.mbn + jsons)
       linux-firmware-qcom-qcm6490-ipa: '*'                 # IPA fw (ipa_fws.mbn fallback)
@@ -275,6 +294,25 @@ extensions:
 
       # --- Wi-Fi (systemd-networkd DHCP profile + wpa_supplicant launcher) ---
       wpa-supplicant: '*'
+
+      # --- GPU userspace (Adreno 643, mainline drm/msm + Mesa Freedreno/Turnip) -
+      # The kernel side (kernel-module-msm + gpucc/dispcc, the a660 zap firmware
+      # and adreno-a660 GMU/SQE microcode above) is already installed; these make
+      # the GPU usable from userspace. mesa-vulkan-drivers is the Turnip Vulkan
+      # ICD; the rest are the Gallium DRI driver, GLES, EGL and GBM. Feed packages
+      # from packagegroup-avocado-qcom-extra's qcm6490 block.
+      #
+      # vulkan-loader ships libvulkan.so.1 -- the loader every Vulkan app links
+      # against and what actually reads the Turnip ICD manifest; mesa-vulkan-drivers
+      # (the ICD) is unusable without it. vulkan-tools provides vulkaninfo, the
+      # bring-up check that Turnip is loaded.
+      mesa-vulkan-drivers: '*'
+      vulkan-loader: '*'
+      vulkan-tools: '*'
+      mesa-megadriver: '*'
+      libgles2-mesa: '*'
+      libegl-mesa: '*'
+      libgbm: '*'
     kernel-6.18.*:
       packages:
         # --- Display / GPU ---
