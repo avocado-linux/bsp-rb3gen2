@@ -4,6 +4,28 @@ All notable changes to avocado-bsp-rb3gen2 are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3]
+
+### Added
+- Adreno 643 GPU. Display bring-up modules `phy-qcom-edp` (mini-DP) and
+  `lontium-lt9611uxc` (DSI->HDMI), without which the msm display aggregate
+  never binds and there is no `/dev/dri`; the a660 GMU/SQE microcode
+  (`linux-firmware-qcom-adreno-a660`); and the Mesa userspace: Turnip
+  (`mesa-vulkan-drivers`) with the Vulkan loader (`vulkan-loader`),
+  `vulkaninfo` (`vulkan-tools`), the Gallium DRI driver, GLES, EGL and GBM.
+  Verified on RB3 Gen 2 hardware: card0 + renderD128, DP-1 and HDMI-A-1, across
+  a cold provisioned boot and an A/B OS update. Needs meta-avocado's
+  `qcs6490-rb3gen2-dp-disable` UKI overlay (avocado-linux/meta-avocado#396).
+- CDSP compute offload: `fastrpc` and `kernel-module-fastrpc`. Not verified on
+  this board in the configuration the feed ships (Gunyah). It is inferred from
+  the RUBIK Pi 3, which shares the SoC and runs FastRPC under Gunyah.
+
+### Removed
+- The coresight and STM trace modules. Loading them races the SMMU's
+  `amba_dma_configure()` into a NULL dereference that leaves the GPU without an
+  IOMMU and no `/dev/dri`. They are debug-only and stay out until the kernel
+  fix lands.
+
 ## [0.2.0]
 
 ### Removed

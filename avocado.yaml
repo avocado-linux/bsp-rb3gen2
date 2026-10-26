@@ -321,12 +321,13 @@ extensions:
       # listed above -- NOT the audio ADSP, which is the remoteproc the crash
       # comment above is about; compute and audio are separate DSPs.
       #
-      # Works only under the Gunyah XBL config (avocado provision default,
-      # AVOCADO_HYPERVISOR=gunyah). The old "-22 PAS auth" failure was the KVM
-      # XBL config, not firmware signing: under KVM, Linux owns EL2 and there is
-      # no Qualcomm secure-memory mediation, so PAS rejects every DSP/GPU image.
-      # Verified on the rubikpi3 (same qcm6490 SoC + Gunyah XBL) 2026-09-19;
-      # rb3gen2 is verified by parity, not yet on-board (bench packed).
+      # NOT yet verified on RB3 Gen 2 hardware in the configuration the feed
+      # ships (Gunyah, AVOCADO_HYPERVISOR's provision default). The FastRPC
+      # inference is from the RUBIK Pi 3 (same qcm6490 SoC), where cdsp boots and
+      # /dev/fastrpc appears under Gunyah (verified 2026-09-19). On this board the
+      # CDSP has only been seen up under KVM with the newer 00142 boot binaries,
+      # which are not in the feed yet. Without a running CDSP these packages
+      # install but /dev/fastrpc-cdsp has nothing behind it.
       fastrpc: '*'
     kernel-6.18.*:
       packages:
