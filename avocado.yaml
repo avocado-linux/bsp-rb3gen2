@@ -4,7 +4,7 @@ supported_targets:
 
 extensions:
   avocado-bsp-rb3gen2:
-    version: 0.3.3
+    version: 0.3.4
     release: r0
     summary: Board support for the Thundercomm RB3 Gen 2 Vision Kit (QCS6490)
     description: Board support for the Thundercomm RB3 Gen 2 Vision Kit (QCS6490)
@@ -345,6 +345,17 @@ extensions:
         # downstream, so it was never listed.
         kernel-module-i2c-qcom-geni: '*'              # i2c@984000, i2c@a84000
         kernel-module-phy-qcom-snps-femto-v2: '*'     # phy@88e3000, phy@88e4000 (USB HS)
+        # The USB-C port's retimer. pmic_glink_altmode waits on it ("failed to
+        # acquire retimer-switch") and no /sys/class/typec port appears.
+        kernel-module-nb7vpq904m: '*'                 # typec-mux@1c (onnn,nb7vpq904m)
+
+        # --- Wi-Fi / Bluetooth (WCN6750) ---
+        # ath11k_ahb boots the WPSS remoteproc and registers the radio; without
+        # it WPSS stays offline and the ath11k/qca firmware above goes unused.
+        kernel-module-ath11k-ahb: '*'                 # wifi@17110040 (qcom,wcn6750-wifi)
+
+        # --- Watchdog ---
+        kernel-module-qcom-wdt: '*'                   # watchdog@17c10000 (qcom,apss-wdt-sc7280)
 
         # --- PMIC: PWM, ADC, thermal ---
         # The pwm-fan node's provider is the pm8350c `pwm` node, driven by
