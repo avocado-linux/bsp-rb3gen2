@@ -304,11 +304,10 @@ extensions:
       #
       # vulkan-loader ships libvulkan.so.1 -- the loader every Vulkan app links
       # against and what actually reads the Turnip ICD manifest; mesa-vulkan-drivers
-      # (the ICD) is unusable without it. vulkan-tools provides vulkaninfo, the
-      # bring-up check that Turnip is loaded.
+      # (the ICD) is unusable without it. Diagnostics such as vulkaninfo
+      # (vulkan-tools) are left to the image or the test tooling that needs them.
       mesa-vulkan-drivers: '*'
       vulkan-loader: '*'
-      vulkan-tools: '*'
       mesa-megadriver: '*'
       libgles2-mesa: '*'
       libegl-mesa: '*'
@@ -321,13 +320,12 @@ extensions:
       # listed above -- NOT the audio ADSP, which is the remoteproc the crash
       # comment above is about; compute and audio are separate DSPs.
       #
-      # NOT yet verified on RB3 Gen 2 hardware in the configuration the feed
-      # ships (Gunyah, AVOCADO_HYPERVISOR's provision default). The FastRPC
-      # inference is from the RUBIK Pi 3 (same qcm6490 SoC), where cdsp boots and
-      # /dev/fastrpc appears under Gunyah (verified 2026-09-19). On this board the
-      # CDSP has only been seen up under KVM with the newer 00142 boot binaries,
-      # which are not in the feed yet. Without a running CDSP these packages
-      # install but /dev/fastrpc-cdsp has nothing behind it.
+      # Verified on RB3 Gen 2 hardware under KVM with Qualcomm's 00142 boot
+      # binaries (avocado-linux/meta-avocado#561): the CDSP runs and fastrpc_test
+      # passes on it. Running code there also needs the CDSP's FastRPC shell
+      # (hexagon-dsp-binaries-thundercomm-rb3gen2-cdsp), added separately. Under
+      # the older 00137 boot binaries the CDSP times out at start, and these
+      # packages install with nothing behind /dev/fastrpc-cdsp.
       fastrpc: '*'
     kernel-6.18.*:
       packages:

@@ -27,14 +27,16 @@ differences to verify on hardware before calling this complete:
 * **Display / GPU.** Working: mini-DP and HDMI, with the Adreno GPU under
   Mesa (Turnip Vulkan, GLES, EGL, GBM). Verified on hardware. The USB-C DP
   output is disabled by an overlay in meta-avocado.
-* **NPU / CDSP (FastRPC).** Packages are installed but not verified on this
-  board under the Gunyah configuration the feed ships. See the CHANGELOG.
+* **NPU / CDSP (FastRPC).** Verified on RB3 Gen 2 hardware: the CDSP runs and
+  `fastrpc_test` passes on it, under KVM with Qualcomm's 00142 boot binaries
+  (meta-avocado #561) and with the CDSP's FastRPC shell installed (0.3.5). On
+  older boot binaries (00137) the CDSP times out at start. See the CHANGELOG.
 
 ## Status
 
-Built and booted on RB3 Gen 2 hardware, with the display and GPU verified. The
-items marked unverified above, and the known Ethernet issue below, are still
-open.
+Built and booted on RB3 Gen 2 hardware, with the display, GPU (2026-09) and
+CDSP compute (2026-10) verified. The items marked unverified above, and the
+known Ethernet issue below, are still open.
 
 ## Core kit only — mezzanines are separate extensions
 
