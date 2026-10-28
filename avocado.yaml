@@ -353,6 +353,18 @@ extensions:
         # ath11k_ahb boots the WPSS remoteproc and registers the radio; without
         # it WPSS stays offline and the ath11k/qca firmware above goes unused.
         kernel-module-ath11k-ahb: '*'                 # wifi@17110040 (qcom,wcn6750-wifi)
+        # ath11k reaches the WPSS's QMI services over QRTR on its GLINK edge
+        # (the IPCRTR channel); without qrtr-smd the WPSS runs but no radio
+        # registers. pd-mapper serves the remoteprocs' protection domains.
+        kernel-module-qrtr-smd: '*'                   # IPCRTR on the WPSS glink-edge
+        kernel-module-qcom-pd-mapper: '*'
+        # Bluetooth is the WCN6750's UART side. Its serdev waits on the
+        # wcn6750-pmu regulators, which pwrseq-qcom-wcn provides; hci_uart's
+        # QCA protocol (btqca) then loads qca/msbtfw11.mbn and msnv11.bin.
+        kernel-module-pwrseq-qcom-wcn: '*'            # wcn6750-pmu (qcom,wcn6750-pmu)
+        kernel-module-bluetooth: '*'
+        kernel-module-btqca: '*'
+        kernel-module-hci-uart: '*'                   # bluetooth (qcom,wcn6750-bt)
 
         # --- Watchdog ---
         kernel-module-qcom-wdt: '*'                   # watchdog@17c10000 (qcom,apss-wdt-sc7280)
