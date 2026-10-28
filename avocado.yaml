@@ -4,7 +4,7 @@ supported_targets:
 
 extensions:
   avocado-bsp-rb3gen2:
-    version: 0.3.4
+    version: 0.3.5
     release: r0
     summary: Board support for the Thundercomm RB3 Gen 2 Vision Kit (QCS6490)
     description: Board support for the Thundercomm RB3 Gen 2 Vision Kit (QCS6490)
@@ -327,6 +327,11 @@ extensions:
       # the older 00137 boot binaries the CDSP times out at start, and these
       # packages install with nothing behind /dev/fastrpc-cdsp.
       fastrpc: '*'
+      # The CDSP's FastRPC shell (fastrpc_shell_3 / _unsigned_3) and the conf.d
+      # entry that maps this board's DT model to it. Without it the CDSP boots
+      # but every FastRPC session fails (0x80000600). Pinned by the package to
+      # the linux-firmware compute package, so the shell matches cdsp.mbn.
+      hexagon-dsp-binaries-thundercomm-rb3gen2-cdsp: '*'
     kernel-6.18.*:
       packages:
         # --- Display / GPU ---
