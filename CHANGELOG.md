@@ -4,6 +4,18 @@ All notable changes to avocado-bsp-rb3gen2 are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.4]
+
+### Added
+- The drivers for three functions the kernel builds as modules but the BSP never
+  installed, each found by a failing Rubicon board test: the USB-C retimer
+  (`nb7vpq904m`, without which no Type-C port registers), the WCN6750 Wi-Fi
+  (`ath11k-ahb`, which also boots the WPSS) and the APSS watchdog (`qcom-wdt`).
+- The rest of the WCN6750: `qrtr-smd` and `qcom-pd-mapper`, without which the
+  WPSS runs but no Wi-Fi radio registers, and `pwrseq-qcom-wcn`, `bluetooth`,
+  `btqca` and `hci-uart` for Bluetooth. Each was loaded on the board and
+  brought up phy0 and hci0.
+
 ## [0.3.3]
 
 ### Added
