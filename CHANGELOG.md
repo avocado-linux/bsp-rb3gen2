@@ -13,8 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`ath11k-ahb`, which also boots the WPSS) and the APSS watchdog (`qcom-wdt`).
 - The rest of the WCN6750: `qrtr-smd` and `qcom-pd-mapper`, without which the
   WPSS runs but no Wi-Fi radio registers, and `pwrseq-qcom-wcn`, `bluetooth`,
-  `btqca` and `hci-uart` for Bluetooth. Each was loaded on the board and
-  brought up phy0 and hci0.
+  `btqca` and `hci-uart` for Bluetooth. Loaded together on the board, they
+  brought up phy0 (Wi-Fi) and hci0 (Bluetooth).
 
 ## [0.3.3]
 

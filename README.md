@@ -19,8 +19,9 @@ differences to verify on hardware before calling this complete:
   switch driven by `qps615-dlkm` plus a firmware blob -- is already built into
   the feed and named by `packagegroup-avocado-qcom-extra`. Both are now listed
   in this extension, along with the WCN6750 wifi/BT, LT9611UXC HDMI and
-  qcs6490-modem firmware that block covers. Still unverified *on hardware*,
-  but the packages are no longer missing.
+  qcs6490-modem firmware that block covers. The WCN6750 is verified on
+  hardware (Wi-Fi phy0 and Bluetooth hci0 come up, 0.3.4); see the known
+  Ethernet issue below for the QPS615.
 * **Cameras.** The Vision Kit is a camera board; none of its sensor drivers are
   here. Nothing in the VM demo needs them, so they are deliberately absent
   rather than guessed at.
@@ -34,9 +35,9 @@ differences to verify on hardware before calling this complete:
 
 ## Status
 
-Built and booted on RB3 Gen 2 hardware, with the display, GPU (2026-09) and
-CDSP compute (2026-10) verified. The items marked unverified above, and the
-known Ethernet issue below, are still open.
+Built and booted on RB3 Gen 2 hardware, with the display, GPU (2026-09),
+CDSP compute (2026-10) and WCN6750 Wi-Fi/Bluetooth (0.3.4) verified. The
+known Ethernet issue below is still open.
 
 ## Core kit only — mezzanines are separate extensions
 
