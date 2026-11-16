@@ -4,6 +4,13 @@ All notable changes to avocado-bsp-rb3gen2 are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1]
+
+### Fixed
+- `avocado deploy` failing at slot detection. The stone config runs
+  `avocado-bls current-slot`, but avocado-bls is feed-only and nothing installed
+  it. The BSP now installs `avocado-bls`.
+
 ## [0.2.0]
 
 ### Removed

@@ -4,7 +4,7 @@ supported_targets:
 
 extensions:
   avocado-bsp-rb3gen2:
-    version: 0.2.0
+    version: 0.2.1
     release: r0
     summary: Board support for the Thundercomm RB3 Gen 2 Vision Kit (QCS6490)
     description: Board support for the Thundercomm RB3 Gen 2 Vision Kit (QCS6490)
@@ -275,6 +275,10 @@ extensions:
 
       # --- Wi-Fi (systemd-networkd DHCP profile + wpa_supplicant launcher) ---
       wpa-supplicant: '*'
+
+      # A/B slot detection for avocadoctl updates (stone update.slot_detection
+      # runs `avocado-bls current-slot`); feed-only, so the BSP installs it.
+      avocado-bls: '*'
     kernel-6.18.*:
       packages:
         # --- Display / GPU ---
