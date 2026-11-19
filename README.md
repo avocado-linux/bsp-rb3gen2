@@ -24,13 +24,19 @@ differences to verify on hardware before calling this complete:
 * **Cameras.** The Vision Kit is a camera board; none of its sensor drivers are
   here. Nothing in the VM demo needs them, so they are deliberately absent
   rather than guessed at.
-* **Display / GPU.** Same reasoning as the RubikPi: not wired up.
+* **Display / GPU.** Working: mini-DP and HDMI, with the Adreno GPU under
+  Mesa (Turnip Vulkan, GLES, EGL, GBM). Verified on hardware. The USB-C DP
+  output is disabled by an overlay in meta-avocado.
+* **NPU / CDSP (FastRPC).** Verified on RB3 Gen 2 hardware: the CDSP runs and
+  `fastrpc_test` passes on it, under KVM with Qualcomm's 00142 boot binaries
+  (meta-avocado #561) and with the CDSP's FastRPC shell installed (0.3.5). On
+  older boot binaries (00137) the CDSP times out at start. See the CHANGELOG.
 
 ## Status
 
-First cut, unbuilt and unbooted. It exists so the dual-VM reference project has
-a BSP extension to name for this target; treat every package as a hypothesis
-inherited from a sibling board until a boot confirms it.
+Built and booted on RB3 Gen 2 hardware, with the display, GPU (2026-09) and
+CDSP compute (2026-10) verified. The items marked unverified above, and the
+known Ethernet issue below, are still open.
 
 ## Core kit only — mezzanines are separate extensions
 
