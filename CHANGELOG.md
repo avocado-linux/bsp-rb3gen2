@@ -29,6 +29,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   IOMMU and no `/dev/dri`. They are debug-only and stay out until the kernel
   fix lands.
 
+## [0.2.1]
+
+### Fixed
+- `avocado deploy` failing at slot detection. The stone config runs
+  `avocado-bls current-slot`, but avocado-bls is feed-only and nothing installed
+  it. The BSP now installs `avocado-bls`.
+
 ## [0.2.0]
 
 ### Removed
