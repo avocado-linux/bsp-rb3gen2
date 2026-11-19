@@ -9,7 +9,7 @@ extensions:
     summary: Board support for the Thundercomm RB3 Gen 2 Vision Kit (QCS6490)
     description: Board support for the Thundercomm RB3 Gen 2 Vision Kit (QCS6490)
     license: Apache-2.0
-    url: https://github.com/avocadolinux/avocado-os
+    url: https://github.com/avocado-linux/bsp-rb3gen2
     vendor: Avocado Linux <info@avocadolinux.org>
 
     # Services the BSP layer takes responsibility for. Enabled at merge
