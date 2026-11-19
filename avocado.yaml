@@ -9,7 +9,7 @@ extensions:
     summary: Board support for the Thundercomm RB3 Gen 2 Vision Kit (QCS6490)
     description: Board support for the Thundercomm RB3 Gen 2 Vision Kit (QCS6490)
     license: Apache-2.0
-    url: https://github.com/avocadolinux/avocado-os
+    url: https://github.com/avocado-linux/bsp-rb3gen2
     vendor: Avocado Linux <info@avocadolinux.org>
 
     # Services the BSP layer takes responsibility for. Enabled at merge
@@ -327,6 +327,10 @@ extensions:
       # the older 00137 boot binaries the CDSP times out at start, and these
       # packages install with nothing behind /dev/fastrpc-cdsp.
       fastrpc: '*'
+
+      # A/B slot detection for avocadoctl updates (stone update.slot_detection
+      # runs `avocado-bls current-slot`); feed-only, so the BSP installs it.
+      avocado-bls: '*'
     kernel-6.18.*:
       packages:
         # --- Display / GPU ---
