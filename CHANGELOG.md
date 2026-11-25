@@ -13,8 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     path (`snd-q6apm`, `q6apm-dai`, `q6apm-lpass-dais`, `q6prm`,
     `q6prm-clocks`), the WSA and VA macros, `soundwire-qcom`, the WSA883x
     speaker amps, `reset-gpio` (their shared reset line) and HDMI audio, plus
-    the card's UCM profile (`alsa-ucm-conf`). The card registers and plays a
-    tone through the speakers; it also needs meta-avocado's DP-audio-link
+    the card's UCM profile (`alsa-ucm-conf`). The card registers and a tone plays to
+    completion on the UCM Speaker PCM (acoustic output not verified: the board
+    DMICs hear no tone, likely no speakers fitted); it also needs the DP-audio-link
     overlay fix.
   - CAN: `mcp251xfd` for the on-board MCP2518FD (a loopback frame round trip
     passes).
