@@ -4,6 +4,33 @@ All notable changes to avocado-bsp-rb3gen2 are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.9]
+
+### Added
+- Everything the board's enabled device tree calls for, found with the
+  board-bringup coverage audit (its DT-INSTALL list is now empty):
+  - Audio: the card's machine driver (`snd-soc-sc8280xp`) and its AudioReach
+    path (`snd-q6apm`, `q6apm-dai`, `q6apm-lpass-dais`, `q6prm`,
+    `q6prm-clocks`), the WSA and VA macros, `soundwire-qcom`, the WSA883x
+    speaker amps, `reset-gpio` (their shared reset line) and HDMI audio, plus
+    the card's UCM profile (`alsa-ucm-conf`). The card registers and plays a
+    tone through the speakers; it also needs meta-avocado's DP-audio-link
+    overlay fix.
+  - CAN: `mcp251xfd` for the on-board MCP2518FD (a loopback frame round trip
+    passes).
+  - `nvmem-reboot-mode` (`reboot bootloader` / `reboot edl`), `usb-conn-gpio`
+    (micro-USB OTG role), `usb4604`, and `clk-gp-mnd` (PDM GP MN clock).
+
+### Changed
+- The audio notes: the board DTS has had its `&sound` card for a while; the
+  gap was the missing machine driver and AudioReach modules.
+- The "deliberately not listed" note is gone: the video codec and reboot
+  modes are installed, and the coverage audit is the check.
+
+### Not installed, on purpose
+- `onboard-usb-dev`: the DT calls for it, but loaded it re-enumerates the
+  Genesys hub on the PCIe xHCI in an endless loop and took Ethernet down.
+
 ## [0.3.6]
 
 ### Added
