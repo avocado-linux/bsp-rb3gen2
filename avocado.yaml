@@ -4,7 +4,7 @@ supported_targets:
 
 extensions:
   avocado-bsp-rb3gen2:
-    version: 0.3.5
+    version: 0.3.6
     release: r0
     summary: Board support for the Thundercomm RB3 Gen 2 Vision Kit (QCS6490)
     description: Board support for the Thundercomm RB3 Gen 2 Vision Kit (QCS6490)
@@ -159,6 +159,21 @@ extensions:
       kernel-module-ocmem: '*'
       kernel-module-phy-qcom-edp: '*'
       kernel-module-lontium-lt9611uxc: '*'
+
+      # --- Video codec (H.264/HEVC encode and decode) ---
+      # The SoC's video block (venus @aa00000, "qcom,sc7280-venus") is driven by
+      # qcom-iris: with CONFIG_VIDEO_QCOM_IRIS set, the older venus driver
+      # compiles its sc7280 entry out. iris needs the video clock controller
+      # first (videocc-sc7280; until it binds the codec sits in
+      # waiting_for_supplier) and loads qcom/vpu/vpu20_p1.mbn on first open.
+      # Result: /dev/videoN "qcom-iris-encoder" and "qcom-iris-decoder", and
+      # GStreamer's v4l2h264enc/v4l2h265enc/v4l2h264dec/v4l2h265dec/v4l2vp9dec.
+      # Measured on the RB3 Gen 2: 1280x720 H.264 at about 190 fps from
+      # videotestsrc, and 30 fps from the camera at 4 Mbit/s.
+      kernel-module-qcom-iris: '*'
+      kernel-module-videobuf2-dma-contig: '*'
+      kernel-module-videocc-sc7280: '*'
+      linux-firmware-qcom-vpu: '*'
 
       # --- USB-C / Type-C / pmic-glink ---
       kernel-module-gpio-sbu-mux: '*'

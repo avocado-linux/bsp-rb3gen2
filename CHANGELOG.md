@@ -4,6 +4,17 @@ All notable changes to avocado-bsp-rb3gen2 are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.6]
+
+### Added
+- The video codec: `qcom-iris` with `videocc-sc7280` (the video clock
+  controller, without which the codec waits for its supplier forever),
+  `videobuf2-dma-contig` and the `qcom/vpu/vpu20_p1.mbn` firmware
+  (`linux-firmware-qcom-vpu`). The kernel built the drivers but nothing
+  installed them, so `/dev/video*` had no encoder or decoder. With them,
+  GStreamer's `v4l2h264enc`, `v4l2h265enc`, `v4l2h264dec`, `v4l2h265dec`
+  and `v4l2vp9dec` work: 1280x720 H.264 encodes at about 190 fps.
+
 ## [0.3.5]
 
 ### Added
