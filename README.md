@@ -32,6 +32,10 @@ differences to verify on hardware before calling this complete:
   `fastrpc_test` passes on it, under KVM with Qualcomm's 00142 boot binaries
   (meta-avocado #561) and with the CDSP's FastRPC shell installed (0.3.5). On
   older boot binaries (00137) the CDSP times out at start. See the CHANGELOG.
+* **Video codec.** H.264/HEVC encode and H.264/HEVC/VP9 decode through the
+  `qcom-iris` V4L2 driver (0.3.6), verified on hardware with GStreamer's
+  `v4l2h264enc`. The firmware package carries every Qualcomm VPU image
+  (about 31 MB installed); the board uses only `qcom/vpu/vpu20_p1.mbn`.
 
 ## Status
 

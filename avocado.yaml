@@ -4,7 +4,7 @@ supported_targets:
 
 extensions:
   avocado-bsp-rb3gen2:
-    version: 0.3.5
+    version: 0.3.9
     release: r0
     summary: Board support for the Thundercomm RB3 Gen 2 Vision Kit (QCS6490)
     description: Board support for the Thundercomm RB3 Gen 2 Vision Kit (QCS6490)
@@ -160,6 +160,21 @@ extensions:
       kernel-module-phy-qcom-edp: '*'
       kernel-module-lontium-lt9611uxc: '*'
 
+      # --- Video codec (H.264/HEVC encode and decode) ---
+      # The SoC's video block (venus @aa00000, "qcom,sc7280-venus") is driven by
+      # qcom-iris: with CONFIG_VIDEO_QCOM_IRIS set, the older venus driver
+      # compiles its sc7280 entry out. iris needs the video clock controller
+      # first (videocc-sc7280; until it binds the codec sits in
+      # waiting_for_supplier) and loads qcom/vpu/vpu20_p1.mbn on first open.
+      # Result: /dev/videoN "qcom-iris-encoder" and "qcom-iris-decoder", and
+      # GStreamer's v4l2h264enc/v4l2h265enc/v4l2h264dec/v4l2h265dec/v4l2vp9dec.
+      # Measured on the RB3 Gen 2: 1280x720 H.264 at about 190 fps from
+      # videotestsrc, and 30 fps from the camera at 4 Mbit/s.
+      kernel-module-qcom-iris: '*'
+      kernel-module-videobuf2-dma-contig: '*'
+      kernel-module-videocc-sc7280: '*'
+      linux-firmware-qcom-vpu: '*'
+
       # --- USB-C / Type-C / pmic-glink ---
       kernel-module-gpio-sbu-mux: '*'
       kernel-module-pmic-glink: '*'
@@ -282,15 +297,15 @@ extensions:
       # q6afe / q6asm / q6adm / q6routing, listed in the kernel-6.18.* block
       # below) rather than downstream snd_soc_qcm6490.
       #
-      # KNOWN GAP on the 2026 feed: sc7280.dtsi declares `sound: sound { };` as
-      # an empty stub for the board DTS to fill, and our
-      # qcs6490-thundercomm-rb3gen2.dts does not fill it. With no card node
-      # nothing binds an ASoC machine driver, so the DSP backends probe but no
-      # PCM device appears. The fix belongs in the DTS (a `&sound` node whose
-      # compatible one of the mainline machine drivers claims -- for QCS6490
-      # that is snd-soc-sc8280xp, which matches qcom,qcm6490-idp-sndcard and
-      # qcom,qcs6490-rb3gen2-sndcard); add kernel-module-snd-soc-sc8280xp here
-      # in the same change.
+      # The board DTS fills `&sound` (qcom,qcs6490-rb3gen2-sndcard) with
+      # AudioReach links: WSA883x speakers on SoundWire (swr2) through the WSA
+      # macro, DMICs through the VA macro, HDMI through the LT9611UXC (MI2S) and
+      # DisplayPort, all via q6apm/q6prm under the ADSP's GPR. snd-soc-sc8280xp
+      # is the machine driver that claims the card; the AudioReach modules are
+      # in the kernel-6.18.* block. alsa-ucm-conf carries the card's UCM profile
+      # (ucm2/Qualcomm/qcs6490/QCS6490-RB3Gen2), without which the card
+      # registers but no mixer path routes to the speakers.
+      alsa-ucm-conf: '*'
 
       # --- Wi-Fi (systemd-networkd DHCP profile + wpa_supplicant launcher) ---
       wpa-supplicant: '*'
@@ -410,15 +425,51 @@ extensions:
         kernel-module-q6adm: '*'                      # service@8
         kernel-module-q6routing: '*'                  # routing
 
+        # --- Audio: the card and its AudioReach (GPR) path ---
+        # The card node is AudioReach, not APR: q6apm/q6prm are GPR services
+        # (the apr module also drives GPR). Found by the coverage audit's
+        # DT-INSTALL list, which also catches the codecs on SoundWire that
+        # can't appear as devices until soundwire-qcom loads.
+        kernel-module-snd-soc-sc8280xp: '*'           # sound (qcom,qcs6490-rb3gen2-sndcard)
+        kernel-module-snd-q6apm: '*'                  # service@1 (qcom,q6apm)
+        kernel-module-q6apm-dai: '*'                  # dais (qcom,q6apm-dais)
+        kernel-module-q6apm-lpass-dais: '*'           # bedais (qcom,q6apm-lpass-dais)
+        kernel-module-q6prm: '*'                      # service@2 (qcom,q6prm)
+        kernel-module-q6prm-clocks: '*'               # clock-controller (qcom,q6prm-lpass-clocks)
+        kernel-module-snd-soc-lpass-wsa-macro: '*'    # codec@3240000 (speaker path)
+        kernel-module-snd-soc-lpass-va-macro: '*'     # codec@3370000 (DMIC capture)
+        kernel-module-soundwire-qcom: '*'             # soundwire@3250000 (swr2)
+        kernel-module-snd-soc-wsa883x: '*'            # speaker@0,1 / speaker@0,2 (sdw10217020200)
+        # The two WSA883x amps share one reset line (tlmm 158), which the reset
+        # framework serves through reset-gpio. Without it both amps defer with
+        # "Failed to get reset" and the card never registers. Not found by a DT
+        # compatible: the reset core creates that device on demand.
+        kernel-module-reset-gpio: '*'
+        kernel-module-snd-soc-hdmi-codec: '*'         # HDMI audio through the LT9611UXC
+
+        # --- CAN: the on-board MCP2518FD on SPI ---
+        kernel-module-mcp251xfd: '*'                  # can@0 on spi3 (microchip,mcp2518fd)
+
+        # --- Reboot modes and USB plumbing ---
+        # nvmem-reboot-mode makes `reboot bootloader` / `reboot edl` set the
+        # PMIC's reboot reason, so a board can be put in fastboot or EDL from
+        # Linux without the boot-mode switch.
+        kernel-module-nvmem-reboot-mode: '*'          # reboot-mode (nvmem-reboot-mode)
+        kernel-module-usb-conn-gpio: '*'              # usb2-connector (gpio-usb-b-connector): micro-USB OTG role
+        # Not onboard-usb-dev, though the DT calls for it (hub@1, usb5e3,610/625
+        # on the PCIe xHCI): loaded, it re-enumerates that hub in an endless loop
+        # ("hub 2-1:1.0: USB hub found" every ~20 ms), which floods the console
+        # and took Ethernet down (measured 2026-11-25). The hub works without it.
+        kernel-module-usb4604: '*'                    # usb-hub@2d behind the i2c mux (smsc,usb4604)
+        kernel-module-clk-gp-mnd: '*'                 # clock-controller@88d3000 (qcom,clk-gp-mnd): PDM GP MN divider
+
         # --- CDSP compute offload (FastRPC) ---
         kernel-module-fastrpc: '*'                    # fastrpc, compute-cb; creates /dev/fastrpc (see NPU note in common block)
 
-        # Deliberately not listed, though the dtb has enabled nodes for them:
-        #   camcc-sc7280            camera clocks; no camera support here
-        #   videocc-sc7280 + qcom-iris  hardware video codec; absent from the
-        #                           2024 set too, so not a regression
-        #   q6usb                   USB audio offload; needs the card first
-        #   nvmem-reboot-mode       reboot-mode via nvmem, not used by avocado
+        # Everything the enabled device tree calls for is listed, block by
+        # block. Check with the board-bringup coverage audit (coverage.py):
+        # its DT-INSTALL list must be empty. Camera support (camcc, CAMSS,
+        # sensors) is the Vision Kit mezzanine's, in avocado-bsp-rb3gen2-vision.
 
 sdk:
   image: docker.io/avocadolinux/sdk:{{ env.AVOCADO_DISTRO_RELEASE }}

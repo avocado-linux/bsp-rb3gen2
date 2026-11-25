@@ -4,6 +4,45 @@ All notable changes to avocado-bsp-rb3gen2 are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.9]
+
+### Added
+- Everything the board's enabled device tree calls for, found with the
+  board-bringup coverage audit (its DT-INSTALL list is now empty):
+  - Audio: the card's machine driver (`snd-soc-sc8280xp`) and its AudioReach
+    path (`snd-q6apm`, `q6apm-dai`, `q6apm-lpass-dais`, `q6prm`,
+    `q6prm-clocks`), the WSA and VA macros, `soundwire-qcom`, the WSA883x
+    speaker amps, `reset-gpio` (their shared reset line) and HDMI audio, plus
+    the card's UCM profile (`alsa-ucm-conf`). The card registers and a tone plays to
+    completion on the UCM Speaker PCM (acoustic output not verified: the board
+    DMICs hear no tone, likely no speakers fitted); it also needs the DP-audio-link
+    overlay fix.
+  - CAN: `mcp251xfd` for the on-board MCP2518FD (a loopback frame round trip
+    passes).
+  - `nvmem-reboot-mode` (`reboot bootloader` / `reboot edl`), `usb-conn-gpio`
+    (micro-USB OTG role), `usb4604`, and `clk-gp-mnd` (PDM GP MN clock).
+
+### Changed
+- The audio notes: the board DTS has had its `&sound` card for a while; the
+  gap was the missing machine driver and AudioReach modules.
+- The "deliberately not listed" note is gone: the video codec and reboot
+  modes are installed, and the coverage audit is the check.
+
+### Not installed, on purpose
+- `onboard-usb-dev`: the DT calls for it, but loaded it re-enumerates the
+  Genesys hub on the PCIe xHCI in an endless loop and took Ethernet down.
+
+## [0.3.6]
+
+### Added
+- The video codec: `qcom-iris` with `videocc-sc7280` (the video clock
+  controller, without which the codec waits for its supplier forever),
+  `videobuf2-dma-contig` and the `qcom/vpu/vpu20_p1.mbn` firmware
+  (`linux-firmware-qcom-vpu`). The kernel built the drivers but nothing
+  installed them, so `/dev/video*` had no encoder or decoder. With them,
+  GStreamer's `v4l2h264enc`, `v4l2h265enc`, `v4l2h264dec`, `v4l2h265dec`
+  and `v4l2vp9dec` work: 1280x720 H.264 encodes at about 190 fps.
+
 ## [0.3.5]
 
 ### Added
